@@ -1,0 +1,1 @@
+> **Given a set of integers and a target value, is there a subset whose sum equals the target?**
