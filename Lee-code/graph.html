@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BST Visualizer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f172a; font-family: system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useRef, useEffect } = React;
+
+class TreeNode {
+  constructor(val) { this.val = val; this.left = null; this.right = null; }
+}
+
+class BST {
+  constructor() { this.root = null; }
+  insert(val) {
+    const node = new TreeNode(val);
+    if (!this.root) { this.root = node; return; }
+    let cur = this.root;
+    while (true) {
+      if (val < cur.val) { if (!cur.left) { cur.left = node; return; } cur = cur.left; }
+      else if (val > cur.val) { if (!cur.right) { cur.right = node; return; } cur = cur.right; }
+      else return;
+    }
+  }
+  delete(val) { this.root = this._delete(this.root, val); }
+  _delete(node, val) {
+    if (!node) return null;
+    if (val < node.val) { node.left = this._delete(node.left, val); }
+    else if (val > node.val) { node.right = this._delete(node.right, val); }
+    else {
+      if (!node.left) return node.right;
+      if (!node.right) return node.left;
+      let min = node.right;
+      while (min.left) min = min.left;
+      node.val = min.val;
+      node.right = this._delete(node.right, min.val);
+    }
+    return node;
+  }
+  search(val) {
+    let cur = this.root;
+    while (cur) { if (val === cur.val) return true; cur = val < cur.val ? cur.left : cur.right; }
+    return false;
+  }
+  inorder() {
+    const res = [];
+    const t = (n) => { if (!n) return; t(n.left); res.push(n.val); t(n.right); };
+    t(this.root); return res;
+  }
+}
+
+function computePositions(root, W, H) {
+  if (!root) return [];
+  const raw = [];
+  let idx = 0;
+  const assign = (node, depth) => {
+    if (!node) return;
+    assign(node.left, depth + 1);
+    raw.push({ val: node.val, x: idx, y: depth, node });
+    idx++;
+    assign(node.right, depth + 1);
+  };
+  assign(root, 0);
+  const total = raw.length;
+  const maxD = Math.max(...raw.map(p => p.y));
+  const padX = 50, padY = 40;
+  const xStep = total > 1 ? (W - padX * 2) / (total - 1) : 0;
+  const yStep = maxD > 0 ? Math.min(70, (H - padY * 2) / maxD) : 0;
+  const map = new Map();
+  const positions = raw.map(p => {
+    const px = total > 1 ? padX + p.x * xStep : W / 2;
+    const py = padY + p.y * yStep;
+    const pos = { val: p.val, x: px, y: py, left: null, right: null, node: p.node };
+    map.set(p.val, pos); return pos;
+  });
+  for (const pos of positions) {
+    if (pos.node.left) { const c = map.get(pos.node.left.val); if (c) pos.left = { x: c.x, y: c.y }; }
+    if (pos.node.right) { const c = map.get(pos.node.right.val); if (c) pos.right = { x: c.x, y: c.y }; }
+  }
+  return positions;
+}
+
+function App() {
+  const [tree] = useState(() => new BST());
+  const [inputVal, setInputVal] = useState("");
+  const [, setTick] = useState(0);
+  const [highlight, setHighlight] = useState(null);
+  const [message, setMessage] = useState("Enter a value and click Insert to start");
+  const canvasRef = useRef(null);
+  const W = 800, H = 500;
+  const rerender = () => setTick(t => t + 1);
+  const positions = computePositions(tree.root, W, H);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = "#475569"; ctx.lineWidth = 2;
+    for (const p of positions) {
+      if (p.left) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.left.x, p.left.y); ctx.stroke(); }
+      if (p.right) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.right.x, p.right.y); ctx.stroke(); }
+    }
+    for (const p of positions) {
+      const hl = highlight === p.val;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
+      ctx.fillStyle = hl ? "#f59e0b" : "#3b82f6"; ctx.fill();
+      ctx.strokeStyle = hl ? "#d97706" : "#1e40af"; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.fillStyle = "#fff"; ctx.font = "bold 15px system-ui";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(p.val), p.x, p.y);
+    }
+    if (!positions.length) {
+      ctx.fillStyle = "#94a3b8"; ctx.font = "16px system-ui"; ctx.textAlign = "center";
+      ctx.fillText("Tree is empty", W / 2, H / 2);
+    }
+  }, [positions, highlight]);
+
+  useEffect(() => { draw(); }, [draw]);
+
+  const doInsert = () => {
+    const v = parseInt(inputVal); if (isNaN(v)) { setMessage("Enter a valid integer"); return; }
+    if (tree.search(v)) { setMessage(`${v} already exists`); return; }
+    tree.insert(v); setHighlight(v); setMessage(`Inserted ${v}`); setInputVal(""); rerender();
+    setTimeout(() => { setHighlight(null); rerender(); }, 1000);
+  };
+  const doDelete = () => {
+    const v = parseInt(inputVal); if (isNaN(v)) { setMessage("Enter a valid integer"); return; }
+    if (!tree.search(v)) { setMessage(`${v} not found`); return; }
+    tree.delete(v); setMessage(`Deleted ${v}`); setInputVal(""); rerender();
+  };
+  const doSearch = () => {
+    const v = parseInt(inputVal); if (isNaN(v)) { setMessage("Enter a valid integer"); return; }
+    if (tree.search(v)) { setHighlight(v); setMessage(`Found ${v} ✓`); setTimeout(() => { setHighlight(null); rerender(); }, 1500); }
+    else setMessage(`${v} not found ✗`);
+    rerender();
+  };
+  const doClear = () => { tree.root = null; setMessage("Tree cleared"); setInputVal(""); rerender(); };
+  const doRandom = () => {
+    tree.root = null; const n = 7 + Math.floor(Math.random() * 5);
+    const s = new Set(); while (s.size < n) s.add(Math.floor(Math.random() * 99) + 1);
+    s.forEach(v => tree.insert(v)); setMessage(`Inserted ${n} random values`); rerender();
+  };
+
+  const inorderStr = tree.root ? tree.inorder().join(", ") : "empty";
+  const btnStyle = (bg) => ({ padding: "8px 16px", borderRadius: 8, border: "none", background: bg, color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer" });
+
+  return (
+    <div style={{ background: "#0f172a", minHeight: "100vh", padding: 20, fontFamily: "system-ui" }}>
+      <div style={{ maxWidth: 820, margin: "0 auto" }}>
+        <h1 style={{ color: "#e2e8f0", fontSize: 24, margin: "0 0 16px", textAlign: "center" }}>
+          Binary Search Tree Visualizer
+        </h1>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 12 }}>
+          <input type="text" value={inputVal} onChange={e => setInputVal(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && doInsert()} placeholder="Enter integer..."
+            style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #334155", background: "#1e293b", color: "#e2e8f0", fontSize: 15, width: 140, outline: "none" }} />
+          <button onClick={doInsert} style={btnStyle("#22c55e")}>Insert</button>
+          <button onClick={doDelete} style={btnStyle("#ef4444")}>Delete</button>
+          <button onClick={doSearch} style={btnStyle("#f59e0b")}>Search</button>
+          <button onClick={doRandom} style={btnStyle("#8b5cf6")}>Random</button>
+          <button onClick={doClear} style={btnStyle("#64748b")}>Clear</button>
+        </div>
+        <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 14, marginBottom: 8 }}>{message}</div>
+        <div style={{ background: "#1e293b", borderRadius: 12, padding: 8, border: "1px solid #334155", overflow: "hidden" }}>
+          <canvas ref={canvasRef} style={{ width: W, height: H, maxWidth: "100%", display: "block", margin: "0 auto" }} />
+        </div>
+        <div style={{ textAlign: "center", color: "#64748b", fontSize: 13, marginTop: 10 }}>In-order: [{inorderStr}]</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
