@@ -1,0 +1,40 @@
+<TMU|<tuple|1.1.0|2025.0.15>>
+
+<style|<tuple|generic|number-europe>>
+
+<\body>
+  Logistics Regression: doing binary classification to vectors
+
+  <math|<around*|{|<around*|(|x<rsub|i>,y<rsub|i>|)>|}><rsup|n>>,<math|x<rsub|i>\<in\>\<bbb-R\><rsup|N>>,<math|y<rsub|i>\<in\><around*|{|0,1|}>>,prob to estimate:
+
+  <\equation>
+    P<around*|(|y<rsub|i>=1<mid|\|>\<beta\>|)>=<frac|1|1+exp<around*|(|-<around*|\<langle\>|x<rsub|i>,\<beta\>|\<rangle\>>|)>>,
+  </equation>
+
+  <\remark>
+    Sometimes we get <math|P<around*|(|y<rsub|i>=1<mid|\|>\<beta\>|)>=<frac|1|1+exp<around*|(|-<around*|\<langle\>|x<rsub|i>,\<beta\>|\<rangle\>>+\<varepsilon\>|)>>>, where <math|\<varepsilon\>> is bias.
+  </remark>
+
+  <\equation>
+    P<around*|(|y\|x,\<beta\>|)>=<around*|(|<frac|1|1+exp<around*|(|-<around*|\<langle\>|x<rsub|i>,\<beta\>|\<rangle\>>|)>>|)><rsup|y><around*|(|1-<frac|1|1+exp<around*|(|-<around*|\<langle\>|x<rsub|i>,\<beta\>|\<rangle\>>|)>>|)><rsup|1-y>.
+  </equation>
+
+  Just the Bernoulli Distribution.
+
+  \;
+
+  \;
+
+  Maximum Likelihood Estimation:
+
+  <\align>
+    <tformat|<table|<row|<cell|l<around*|(|\<beta\>|)>>|<cell|=log<around*|(|\<Pi\><rsub|i=1><rsup|n>P<around*|(|y<rsub|i>\|x<rsub|i>,\<beta\>|)>|)>>>|<row|<cell|>|<cell|=<big|sum><rsub|i=1><rsup|n>log<around*|(|P<around*|(|y<rsub|i>\|x<rsub|i>,\<beta\>|)>|)>>>|<row|<cell|>|<cell|=<big|sum><rsub|i=1><rsup|n><around*|(|y<rsub|i><around*|(|<frac|1|1+exp<around*|(|-<around*|\<langle\>|x<rsub|i>,\<beta\>|\<rangle\>>|)>>|)>+<around*|(|1-y<rsub|i>|)><around*|(|1-<frac|1|1+exp<around*|(|-<around*|\<langle\>|x<rsub|i>,\<beta\>|\<rangle\>>|)>>|)>|)>>>>>
+  </align>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
